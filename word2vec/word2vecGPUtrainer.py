@@ -458,14 +458,19 @@ def to_gpu(x):
 
 "====================================================="
 
+pwd = "/home/sentiment/바탕화면/ML_practice/txtfiles/"
+
 # 하이퍼 파라미터 설정
 window_size = 5
 hidden_size = 300
 batch_size = 300
 max_epoch = 10
+pwd = "/home/sentiment/바탕화면/ML_practice/txtfiles/"
 
+from .data_loader import load_data
 # 데이터 읽기 + target, contexts 만들기
-corpus, word_to_id, id_to_word = ptb.load_data('train')
+
+corpus, word_to_id, id_to_word = load_data(pwd+"integrated_wiki_corpus.txt")
 vocab_size = len(word_to_id)
 
 contexts, target = create_contexts_target(corpus, window_size)
@@ -474,19 +479,19 @@ if isGPU:
 "====================================================="
 
 # 모델 등 생성 - CBOW or SkipGram
-model = CBOW(vocab_size, hidden_size, window_size, corpus)
-# model = SkipGram(vocab_size, hidden_size, window_size, corpus)
+#model = CBOW(vocab_size, hidden_size, window_size, corpus)
+model = SkipGram(vocab_size, hidden_size, window_size, corpus)
 optimizer = Adam()
 trainer = Trainer(model,optimizer)
 
 
-
 # 학습 시작
-trainer.fit(contexts, target, max_epoch, batch_size, eval_interval = 3000) # eval_interval=500
-trainer.plot()
+isgoing = 1
+while isgoing:
+    trainer.fit(contexts, target, max_epoch, batch_size, eval_interval = 3000) # eval_interval=500
+    trainer.plot()
 
-trainer.fit(contexts, target, max_epoch, batch_size, eval_interval = 3000) # eval_interval=500
-trainer.plot()
+    ingoing = int(input("go : 1 , stop : 0"))
 
 # 저장
 word_vecs = model.word_vecs
@@ -496,85 +501,9 @@ params = {}
 params['word_vecs'] = word_vecs.astype(np.float16)
 params['word_to_id'] = word_to_id
 params['id_to_word'] = id_to_word
-pkl_file = 'cbow_params2.pkl'
+pkl_file = '../data/skipgram_params.pkl'
 with open(pkl_file,'wb') as f:
-    pickle.dump(params,f,-1)
-
-# 4.3.3 CBOW 모델 평가
-# GPU -> CPU, cupy -> numpy 로
-# from common.util import most_similar, analogy
-import numpy as np
+    pickle.dump(params,f,protocol=4)
 
 
-def cos_similarity(x, y, eps=1e-8):
-    '''코사인 유사도 산출
 
-    :param x: 벡터
-    :param y: 벡터
-    :param eps: '0으로 나누기'를 방지하기 위한 작은 값
-    :return:
-    '''
-    nx = x / (np.sqrt(np.sum(x ** 2)) + eps)
-    ny = y / (np.sqrt(np.sum(y ** 2)) + eps)
-    return np.dot(nx, ny)
-
-
-def most_similar(query, word_to_id, id_to_word, word_matrix, top=5):
-    '''유사 단어 검색
-
-    :param query: 쿼리(텍스트)
-    :param word_to_id: 단어에서 단어 ID로 변환하는 딕셔너리
-    :param id_to_word: 단어 ID에서 단어로 변환하는 딕셔너리
-    :param word_matrix: 단어 벡터를 정리한 행렬. 각 행에 해당 단어 벡터가 저장되어 있다고 가정한다.
-    :param top: 상위 몇 개까지 출력할 지 지정
-    '''
-    if query not in word_to_id:
-        print('%s(을)를 찾을 수 없습니다.' % query)
-        return
-
-    print('\n[query] ' + query)
-    query_id = word_to_id[query]
-    query_vec = word_matrix[query_id]
-
-    # 코사인 유사도 계산
-    vocab_size = len(id_to_word)
-
-    similarity = np.zeros(vocab_size)
-    for i in range(vocab_size):
-        similarity[i] = cos_similarity(word_matrix[i], query_vec)
-
-    # 코사인 유사도를 기준으로 내림차순으로 출력
-    count = 0
-    for i in (-1 * similarity).argsort():
-        if id_to_word[i] == query:
-            continue
-        print(' %s: %s' % (id_to_word[i], similarity[i]))
-
-        count += 1
-        if count >= top:
-            return
-
-
-def normalize(x):
-    if x.ndim == 2:
-        s = np.sqrt((x * x).sum(1))
-        x /= s.reshape((s.shape[0], 1))
-    elif x.ndim == 1:
-        s = np.sqrt((x * x).sum())
-        x /= s
-    return x
-
-"========================================================="
-pkl_file = './cbow_params2.pkl'
-with open(pkl_file, 'rb') as f:
-    params = pickle.load(f)
-
-word_vecs = params['word_vecs']
-word_to_id = params['word_to_id']
-id_to_word = params['id_to_word']
-
-# 가장 비슷한(most similar) 단어 뽑기
-querys = ['you', 'year', 'car', 'toyota']
-for query in querys:
-    most_similar(query, word_to_id, id_to_word, word_vecs, top=5)
-"========================================================="
