@@ -465,17 +465,19 @@ window_size = 5
 hidden_size = 300
 batch_size = 300
 max_epoch = 10
-pwd = "/home/sentiment/바탕화면/ML_practice/txtfiles/"
+pwd = "/home/sentiment/바탕화면/ML_practice/txtfiles/morphed/"
 
-from .data_loader import load_data
+from data_loader import load_data
 # 데이터 읽기 + target, contexts 만들기
 
-corpus, word_to_id, id_to_word = load_data(pwd+"integrated_wiki_corpus.txt")
+corpus, word_to_id, id_to_word = load_data(pwd, "morphed-wiki-kowiki.txt")
 vocab_size = len(word_to_id)
+print("data load finish")
 
 contexts, target = create_contexts_target(corpus, window_size)
 if isGPU:
     contexts, target = to_gpu(contexts), to_gpu(target)
+print("create finish")
 "====================================================="
 
 # 모델 등 생성 - CBOW or SkipGram
@@ -483,7 +485,7 @@ if isGPU:
 model = SkipGram(vocab_size, hidden_size, window_size, corpus)
 optimizer = Adam()
 trainer = Trainer(model,optimizer)
-
+print("model build finish")
 
 # 학습 시작
 isgoing = 1
