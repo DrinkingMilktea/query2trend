@@ -3,12 +3,14 @@ import multiprocessing
 coreNum = multiprocessing.cpu_count()
 
 def most_similar(query):
-    w2v_model = Word2Vec.load(query+"word2vec.model")
+    w2v_model = Word2Vec.load("word2vec.model")
     try:
-        words = w2v_model.wv.most_similar(positive="CJ", topn=20)
+        words = w2v_model.wv.most_similar(positive=query, topn=20)
         print(words)
+        return words
     except:
         print("error")
+        return -1
 
 
 def online_train(filepath):
